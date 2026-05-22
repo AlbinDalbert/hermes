@@ -1,6 +1,6 @@
 # Hermes Image
 
-This repo builds a thin custom image on top of `ghcr.io/nousresearch/hermes-agent`
+This repo builds a thin custom image on top of `nousresearch/hermes-agent`
 and adds a pinned `kubectl` binary.
 
 The Dockerfile handles both `amd64` and `arm64`. If `TARGETARCH` is not provided
@@ -37,7 +37,7 @@ K8S_NAMESPACE=hermes \
 `deploy.sh` supports these environment variables:
 
 - `IMAGE_REPO`: target image repository to build, default `ghcr.io/albindalbert/hermes`
-- `HERMES_BASE_IMAGE`: upstream base image, default `ghcr.io/nousresearch/hermes-agent:latest`
+- `HERMES_BASE_IMAGE`: upstream base image, default `nousresearch/hermes-agent:latest`
 - `K8S_NAMESPACE`: Kubernetes namespace, default `default`
 - `NERDCTL_NAMESPACE`: containerd namespace for nerdctl, default `k8s.io`
 - `NO_CACHE`: set to `1` to build with `--no-cache`
