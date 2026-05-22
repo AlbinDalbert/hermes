@@ -6,6 +6,15 @@ USER root
 ARG KUBECTL_VERSION=v1.30.14
 ARG TARGETARCH
 
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        iproute2 \
+        jq \
+        less \
+        ripgrep \
+        wget && \
+    rm -rf /var/lib/apt/lists/*
+
 RUN set -eux; \
     arch="${TARGETARCH:-}"; \
     if [ -z "${arch}" ]; then \
