@@ -1,4 +1,4 @@
-ARG HERMES_BASE_IMAGE=ghcr.io/nousresearch/hermes-agent:latest
+ARG HERMES_BASE_IMAGE=nousresearch/hermes-agent:latest
 FROM ${HERMES_BASE_IMAGE}
 
 USER root
