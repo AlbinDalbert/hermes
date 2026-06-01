@@ -25,6 +25,7 @@ EOF
 }
 
 token_file=""
+token_b64=""
 if [ "${1:-}" = "--from-file" ]; then
     token_file="${2:-}"
     if [ -z "${token_file}" ] || [ ! -r "${token_file}" ]; then
@@ -42,19 +43,29 @@ elif [ "${#}" -gt 0 ]; then
 fi
 
 if [ -n "${token_file}" ]; then
-    kubectl create secret generic "${SECRET_NAME}" \
-        -n "${K8S_NAMESPACE}" \
-        "--from-file=${TOKEN_KEY}=${token_file}" \
-        --dry-run=client -o yaml | kubectl apply -f -
+    token_b64="$(base64 < "${token_file}" | tr -d '\n')"
 elif [ -n "${GITHUB_TOKEN:-}" ]; then
-    kubectl create secret generic "${SECRET_NAME}" \
-        -n "${K8S_NAMESPACE}" \
-        "--from-literal=${TOKEN_KEY}=${GITHUB_TOKEN}" \
-        --dry-run=client -o yaml | kubectl apply -f -
+    token_b64="$(printf '%s' "${GITHUB_TOKEN}" | base64 | tr -d '\n')"
 else
     echo "Set GITHUB_TOKEN or pass --from-file /path/to/token." >&2
     usage >&2
     exit 2
+fi
+
+if kubectl get secret "${SECRET_NAME}" -n "${K8S_NAMESPACE}" >/dev/null 2>&1; then
+    kubectl patch secret "${SECRET_NAME}" -n "${K8S_NAMESPACE}" --type='merge' -p "
+data:
+  ${TOKEN_KEY}: ${token_b64}
+"
+else
+    kubectl create secret generic "${SECRET_NAME}" \
+        -n "${K8S_NAMESPACE}" \
+        "--from-literal=${TOKEN_KEY}=placeholder" \
+        --dry-run=client -o yaml | kubectl apply -f -
+    kubectl patch secret "${SECRET_NAME}" -n "${K8S_NAMESPACE}" --type='merge' -p "
+data:
+  ${TOKEN_KEY}: ${token_b64}
+"
 fi
 
 case "${INJECTION_MODE}" in
