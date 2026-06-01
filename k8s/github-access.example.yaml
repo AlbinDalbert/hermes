@@ -1,0 +1,46 @@
+# Apply this Secret in the same namespace as the Hermes pod.
+# Prefer creating the real Secret with kubectl instead of committing a token:
+#
+#   kubectl create secret generic hermes-github \
+#     -n hermes \
+#     --from-file=GITHUB_TOKEN=/path/to/github-token \
+#     --dry-run=client -o yaml | kubectl apply -f -
+#
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hermes-github
+  namespace: hermes
+type: Opaque
+stringData:
+  GITHUB_TOKEN: replace_with_github_token
+---
+# Merge the env and volume fields below into the existing Hermes Deployment.
+# Do not change serviceAccountName for GitHub token access.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hermes
+  namespace: hermes
+spec:
+  template:
+    spec:
+      serviceAccountName: concord
+      containers:
+        - name: hermes
+          env:
+            - name: GITHUB_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hermes-github
+                  key: GITHUB_TOKEN
+            - name: GITHUB_TOKEN_FILE
+              value: /var/run/secrets/hermes-github/GITHUB_TOKEN
+          volumeMounts:
+            - name: github-token
+              mountPath: /var/run/secrets/hermes-github
+              readOnly: true
+      volumes:
+        - name: github-token
+          secret:
+            secretName: hermes-github

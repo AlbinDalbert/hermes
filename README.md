@@ -91,3 +91,10 @@ To verify the Deployment wiring without printing the token:
 ```bash
 kubectl get deploy hermes -n hermes -o yaml | grep -A20 -E 'GITHUB_TOKEN|github-token|hermes-github'
 ```
+
+The Secret must be in the same namespace as the Hermes pod. A pod in
+namespace `hermes` cannot mount a Secret from namespace `concord`, even if its
+ServiceAccount is named `concord`.
+
+See [k8s/github-access.example.yaml](/workspace/hermes/k8s/github-access.example.yaml:1)
+for the fields to merge into an existing Deployment manifest.
