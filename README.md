@@ -70,6 +70,16 @@ If the Hermes Deployment already uses `envFrom` with an existing Secret such as
 SECRET_NAME=hermes-env INJECTION_MODE=env ./scripts/setup-github-access.sh --from-file /path/to/github-token
 ```
 
+If Hermes filters secret env vars out of tool subprocesses, mount the same key
+as a file:
+
+```bash
+SECRET_NAME=hermes-env INJECTION_MODE=both ./scripts/setup-github-access.sh --from-file /path/to/github-token
+```
+
+This exposes only the `GITHUB_TOKEN` key at
+`/var/run/secrets/hermes-github/GITHUB_TOKEN`.
+
 By default this creates or updates `secret/hermes-github` in namespace `hermes`,
 sets `GITHUB_TOKEN` from that Secret, mounts the same Secret at
 `/var/run/secrets/hermes-github`, sets `GITHUB_TOKEN_FILE`, and restarts

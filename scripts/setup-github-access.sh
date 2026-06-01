@@ -92,6 +92,9 @@ spec:
       - name: github-token
         secret:
           secretName: ${SECRET_NAME}
+          items:
+          - key: ${TOKEN_KEY}
+            path: ${TOKEN_KEY}
 "
         ;;
     env)
@@ -127,6 +130,9 @@ spec:
       - name: github-token
         secret:
           secretName: ${SECRET_NAME}
+          items:
+          - key: ${TOKEN_KEY}
+            path: ${TOKEN_KEY}
 "
         ;;
     *)
