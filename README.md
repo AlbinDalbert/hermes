@@ -39,6 +39,7 @@ K8S_NAMESPACE=hermes \
 - `IMAGE_REPO`: target image repository to build, default `ghcr.io/albindalbert/hermes`
 - `HERMES_BASE_IMAGE`: upstream base image, default `nousresearch/hermes-agent:latest`
 - `K8S_NAMESPACE`: Kubernetes namespace, default `hermes`
+- `K8S_DEPLOYMENT`: Kubernetes Deployment to restart, default `hermes`
 - `NERDCTL_NAMESPACE`: containerd namespace for nerdctl, default `k8s.io`
 - `NO_CACHE`: set to `1` to build with `--no-cache`
 
@@ -63,8 +64,9 @@ Or, to avoid putting the token in shell history:
 ```
 
 By default this creates or updates `secret/hermes-github` in namespace `hermes`,
-mounts it at `/var/run/secrets/hermes-github`, sets `GITHUB_TOKEN_FILE`, and
-restarts `deployment/hermes`.
+sets `GITHUB_TOKEN` from that Secret, mounts the same Secret at
+`/var/run/secrets/hermes-github`, sets `GITHUB_TOKEN_FILE`, and restarts
+`deployment/hermes`.
 
 If the Kubernetes container name differs from the Deployment name, set
 `CONTAINER_NAME` when running the script.
@@ -83,3 +85,9 @@ curl -H "Authorization: Bearer $(cat "$GITHUB_TOKEN_FILE")" https://api.github.c
 
 The Hermes ServiceAccount does not need Kubernetes `get` or `list` permissions
 on Secrets for this setup. It only needs the pod spec to reference the Secret.
+
+To verify the Deployment wiring without printing the token:
+
+```bash
+kubectl get deploy hermes -n hermes -o yaml | grep -A20 -E 'GITHUB_TOKEN|github-token|hermes-github'
+```

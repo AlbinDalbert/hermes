@@ -7,6 +7,7 @@ CONTAINER_NAME="${CONTAINER_NAME:-${DEPLOYMENT}}"
 SECRET_NAME="${SECRET_NAME:-hermes-github}"
 TOKEN_KEY="${TOKEN_KEY:-GITHUB_TOKEN}"
 MOUNT_PATH="${MOUNT_PATH:-/var/run/secrets/hermes-github}"
+INJECTION_MODE="${INJECTION_MODE:-both}"
 
 usage() {
     cat <<EOF
@@ -19,6 +20,7 @@ Environment:
   DEPLOYMENT      Deployment to patch, default: hermes
   CONTAINER_NAME  Container to patch, default: same as DEPLOYMENT
   SECRET_NAME     Secret name, default: hermes-github
+  INJECTION_MODE  both, env, or file; default: both
 EOF
 }
 
@@ -55,7 +57,49 @@ else
     exit 2
 fi
 
-kubectl patch deployment "${DEPLOYMENT}" -n "${K8S_NAMESPACE}" --type='strategic' -p "
+case "${INJECTION_MODE}" in
+    both)
+        patch="
+spec:
+  template:
+    spec:
+      containers:
+      - name: ${CONTAINER_NAME}
+        env:
+        - name: ${TOKEN_KEY}
+          valueFrom:
+            secretKeyRef:
+              name: ${SECRET_NAME}
+              key: ${TOKEN_KEY}
+        - name: GITHUB_TOKEN_FILE
+          value: ${MOUNT_PATH}/${TOKEN_KEY}
+        volumeMounts:
+        - name: github-token
+          mountPath: ${MOUNT_PATH}
+          readOnly: true
+      volumes:
+      - name: github-token
+        secret:
+          secretName: ${SECRET_NAME}
+"
+        ;;
+    env)
+        patch="
+spec:
+  template:
+    spec:
+      containers:
+      - name: ${CONTAINER_NAME}
+        env:
+        - name: ${TOKEN_KEY}
+          valueFrom:
+            secretKeyRef:
+              name: ${SECRET_NAME}
+              key: ${TOKEN_KEY}
+"
+        ;;
+    file)
+        patch="
 spec:
   template:
     spec:
@@ -73,6 +117,23 @@ spec:
         secret:
           secretName: ${SECRET_NAME}
 "
+        ;;
+    *)
+        echo "INJECTION_MODE must be one of: both, env, file." >&2
+        exit 2
+        ;;
+esac
+
+kubectl patch deployment "${DEPLOYMENT}" -n "${K8S_NAMESPACE}" --type='strategic' -p "${patch}"
 
 kubectl rollout restart "deployment/${DEPLOYMENT}" -n "${K8S_NAMESPACE}"
 kubectl rollout status "deployment/${DEPLOYMENT}" -n "${K8S_NAMESPACE}"
+
+echo
+echo "Expected wiring:"
+if [ "${INJECTION_MODE}" = "both" ] || [ "${INJECTION_MODE}" = "env" ]; then
+    echo "- ${TOKEN_KEY} env var from secret/${SECRET_NAME}"
+fi
+if [ "${INJECTION_MODE}" = "both" ] || [ "${INJECTION_MODE}" = "file" ]; then
+    echo "- ${MOUNT_PATH}/${TOKEN_KEY} mounted from secret/${SECRET_NAME}"
+fi

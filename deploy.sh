@@ -7,6 +7,7 @@ IMAGE_TAG="${IMAGE_TAG:-$TAG}"
 IMAGE="${IMAGE_REPO}:${IMAGE_TAG}"
 HERMES_BASE_IMAGE="${HERMES_BASE_IMAGE:-nousresearch/hermes-agent:latest}"
 K8S_NAMESPACE="${K8S_NAMESPACE:-hermes}"
+K8S_DEPLOYMENT="${K8S_DEPLOYMENT:-hermes}"
 NERDCTL_NAMESPACE="${NERDCTL_NAMESPACE:-k8s.io}"
 NO_CACHE="${NO_CACHE:-1}"
 TARGETARCH="${TARGETARCH:-}"
@@ -44,7 +45,13 @@ fi
 echo "Building ${IMAGE} for ${TARGETARCH} in namespace ${NERDCTL_NAMESPACE}"
 sudo nerdctl --namespace "${NERDCTL_NAMESPACE}" build "${build_args[@]}"
 
-echo "Restarting deploy/hermes in namespace ${K8S_NAMESPACE}"
-kubectl rollout restart deploy/hermes -n "${K8S_NAMESPACE}"
+rollout_stamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+echo "Forcing rollout of deploy/${K8S_DEPLOYMENT} in namespace ${K8S_NAMESPACE}"
+kubectl annotate "deploy/${K8S_DEPLOYMENT}" \
+    -n "${K8S_NAMESPACE}" \
+    "hermes.albindalbert.github.io/restarted-at=${rollout_stamp}" \
+    --overwrite
+kubectl rollout restart "deploy/${K8S_DEPLOYMENT}" -n "${K8S_NAMESPACE}"
+kubectl rollout status "deploy/${K8S_DEPLOYMENT}" -n "${K8S_NAMESPACE}"
 
 echo "Done."
