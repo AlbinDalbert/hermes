@@ -8,6 +8,7 @@ ARG TARGETARCH
 
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
+        git \
         iproute2 \
         jq \
         less \
@@ -30,3 +31,8 @@ RUN set -eux; \
     install -m 0755 /tmp/kubectl /usr/local/bin/kubectl; \
     rm -f /tmp/kubectl /tmp/kubectl.sha256; \
     kubectl version --client=true
+
+COPY bin/git-credential-github-token /usr/local/bin/git-credential-github-token
+
+RUN chmod 0755 /usr/local/bin/git-credential-github-token && \
+    git config --system credential.https://github.com.helper github-token

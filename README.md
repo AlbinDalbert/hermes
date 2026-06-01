@@ -38,6 +38,48 @@ K8S_NAMESPACE=hermes \
 
 - `IMAGE_REPO`: target image repository to build, default `ghcr.io/albindalbert/hermes`
 - `HERMES_BASE_IMAGE`: upstream base image, default `nousresearch/hermes-agent:latest`
-- `K8S_NAMESPACE`: Kubernetes namespace, default `default`
+- `K8S_NAMESPACE`: Kubernetes namespace, default `hermes`
 - `NERDCTL_NAMESPACE`: containerd namespace for nerdctl, default `k8s.io`
 - `NO_CACHE`: set to `1` to build with `--no-cache`
+
+## GitHub Access
+
+This image includes a Git credential helper for `https://github.com` that reads
+a token from `GITHUB_TOKEN_FILE` first, then `GITHUB_TOKEN`. The preferred
+runtime setup is a Kubernetes Secret mounted as a file, so the token is not
+present in normal environment dumps.
+
+An administrator with permission to create Secrets and patch the Hermes
+Deployment can run:
+
+```bash
+GITHUB_TOKEN=ghp_or_github_pat_here ./scripts/setup-github-access.sh
+```
+
+Or, to avoid putting the token in shell history:
+
+```bash
+./scripts/setup-github-access.sh --from-file /path/to/github-token
+```
+
+By default this creates or updates `secret/hermes-github` in namespace `hermes`,
+mounts it at `/var/run/secrets/hermes-github`, sets `GITHUB_TOKEN_FILE`, and
+restarts `deployment/hermes`.
+
+If the Kubernetes container name differs from the Deployment name, set
+`CONTAINER_NAME` when running the script.
+
+After the rollout, private HTTPS clones from GitHub should work normally:
+
+```bash
+git clone https://github.com/owner/repo.git
+```
+
+For direct API calls, read the token explicitly:
+
+```bash
+curl -H "Authorization: Bearer $(cat "$GITHUB_TOKEN_FILE")" https://api.github.com/user
+```
+
+The Hermes ServiceAccount does not need Kubernetes `get` or `list` permissions
+on Secrets for this setup. It only needs the pod spec to reference the Secret.
